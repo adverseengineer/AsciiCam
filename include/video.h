@@ -41,19 +41,42 @@ namespace Video {
 		erase();
 	}
 
-	inline void PlotPixel(float ndcX, float ndcY) noexcept {
+	inline void PlotPixel(int x, int y) noexcept {
 		assert(Initialized == true); //can only plot pixels if we already called init
-		// assert((-1 <= ndcX) && (ndcX <= 1));
-		// assert((-1 <= ndcY) && (ndcY <= 1));
-		size_t line = (size_t)(ScreenHeight * (1 - ndcY)/2 + 0.5f);
-		size_t col = (size_t)(ScreenWidth * (ndcX + 1)/2 + 0.5f);
-		// assert(line <= ScreenHeight);
-		// assert(col <= ScreenWidth);
-		mvaddch(line, col, '#');
+		// assert(x <= ScreenWidth);
+		// assert(y <= ScreenHeight);
+		mvaddch(y, x, '#');
 	}
 
-	inline void PlotLine(float beginX, float beginY, float endX, float endY) {
-		//TODO:
+	//uses bresenham's line plotting algorithm
+	inline void PlotLine(int x0, int y0, int x1, int y1) noexcept {
+		assert(Initialized == true); //can only plot lines if we already called init
+
+		if(x0 > x1) {
+			int temp = x0;
+			x0 = x1;
+			x1 = temp;
+		}
+
+		if(y0 > y1) {
+			int temp = y0;
+			y0 = y1;
+			y1 = temp;
+		}
+
+		int dx = x1 - x0;
+		int dy = y1 - y0;
+		int D = 2*dy - dx;
+		int y = y0;
+
+		for(int x = x0; x < x1; x++) {
+			mvaddch(y,x,'#');
+			if(D > 0) {
+				y++;
+				D -= 2*dx;
+			}
+			D += 2*dy;
+		}
 	}
 }
 

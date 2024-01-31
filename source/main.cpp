@@ -33,6 +33,20 @@ void UpdateInfoBlob(Camera& cam, GameObject& gobj) {
  	snprintf(infoBuffer, infoBufferLen, "cam aspect: %f", cam.aspect);
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
+	line++;
+
+	snprintf(infoBuffer, infoBufferLen, "WASD: move laterally");
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
+
+	snprintf(infoBuffer, infoBufferLen, "Q/E: move up/down");
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
+
+	snprintf(infoBuffer, infoBufferLen, "left/right arrow keys: turn");
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
+
+	snprintf(infoBuffer, infoBufferLen, "Z/X: increase/decrease FOV");
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
+
 	line = Video::ScreenHeight - 1;
 
 	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", gobj.transform[3][0], gobj.transform[3][1], gobj.transform[3][2], gobj.transform[3][3]);
@@ -69,8 +83,7 @@ void UpdateInfoBlob(Camera& cam, GameObject& gobj) {
 	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
 }
 
-void GetInput(Camera& cam, Vector3& forward, Vector3& right) {
-	lastInput = getch();
+void UseInput(Camera& cam, Vector3& forward, Vector3& right) {
 	switch(lastInput) {
 		case ERR: break;
 		case 'w': cam.position = cam.position + forward; break;
@@ -90,14 +103,21 @@ int main(void) {
 
 	Video::Init();
 
-	Camera cam({0,0,-5}, 90*DEGTORAD, 60*DEGTORAD, 1, 0.1, 10);
+	Camera cam({0,0,-5}, 0, 60*DEGTORAD, 1, 0.1, 10);
 	Vector3 forward;
 	Vector3 right;
+	cam.aspect = (float) Video::ScreenWidth / (float) Video::ScreenHeight / 2;
 
 	Model mod(
 		{{1,1,1},{1,1,-1},{1,-1,1},{1,-1,-1},{-1,1,1},{-1,1,-1},{-1,-1,1},{-1,-1,-1}},
-		{{1,7,5},{1,3,7},{1,4,3},{1,2,4},{3,8,7},{3,4,8},{5,7,8},{5,8,6},{1,5,6},{1,6,2},{2,6,8},{2,8,4}}
+		{{0,6,4},{0,2,6},{0,3,2},{0,1,3},{2,7,6},{2,3,7},{4,6,7},{4,7,5},{0,4,5},{0,5,1},{1,5,7},{1,7,3}}
 	);
+
+	// Model mod(
+	// 	{{0,0,0},{1,0,0},{0,1,0},{0,0,1}},
+	// 	{}
+	// );
+	
 
 	GameObject gobj(Matrix4::Identity(), mod);
 	float animYaw = 0;
@@ -105,9 +125,9 @@ int main(void) {
 	while(true) {
 		Video::Clear();
 
-		animYaw += 1*DEGTORAD;
+		// animYaw += 1*DEGTORAD;
 		gobj.transform = Matrix4::Translation({0, cos(15*animYaw), 0}) * Matrix4::RotationY(7*animYaw);
-		
+
 		UpdateInfoBlob(cam, gobj);
 		cam.Render(gobj);
 
@@ -118,7 +138,8 @@ int main(void) {
 		right[0] = -forward[2];
 		right[2] = forward[0];
 
-		GetInput(cam, forward, right);
+		lastInput = getch();
+		UseInput(cam, forward, right);
 	}
 
 	Video::Deinit();
