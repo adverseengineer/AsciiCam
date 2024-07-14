@@ -3,12 +3,25 @@
 
 #include <csignal>
 #include "camera.h"
+#include <glm/ext/matrix_transform.hpp>
 
-#define DEGTORAD ((M_PI)/180.0f)
-#define RADTODEG (180.0f/(M_PI))
+extern "C" {
+#include <ncurses.h>
+}
+//TODO: remove this include and instead get input from a dedicated input system that hides ncurses from code that doesn't need to see it
+//TODO: also migrate UI functionality into its own system which uses ncurses too
 
-size_t frameCounter = 0;
+unsigned long frameCounter = 0;
 int lastInput = ERR;
+
+void ShowMatrix(const char* msg, char* infoBuffer, size_t len, int& line, glm::mat4& mat) {
+	snprintf(infoBuffer, len, msg, ' ');
+	mvaddnstr(line++, 0, infoBuffer, len);
+	for(size_t i = 0; i < 4; i++) {
+		snprintf(infoBuffer, len, "[ %.3f %.3f %.3f %.3f ]", mat[0][i], mat[1][i], mat[2][i], mat[3][i]);
+		mvaddnstr(line++, 0, infoBuffer, len);
+	}
+}
 
 void UpdateInfoBlob(Camera& cam, GameObject& gobj) {
 	const size_t infoBufferLen = 128;
@@ -21,81 +34,50 @@ void UpdateInfoBlob(Camera& cam, GameObject& gobj) {
 	snprintf(infoBuffer, infoBufferLen, "last input: %d", lastInput);
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	snprintf(infoBuffer, infoBufferLen, "cam pos: (%f, %f, %f)", cam.position[0], cam.position[1], cam.position[2]);
-	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
-
-	snprintf(infoBuffer, infoBufferLen, "cam yaw: %f", cam.yaw*RADTODEG);
-	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
-
-	snprintf(infoBuffer, infoBufferLen, "cam fov: %f", cam.fov*RADTODEG);
-	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
-
- 	snprintf(infoBuffer, infoBufferLen, "cam aspect: %f", cam.aspect);
-	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
-
-	line++;
-
 	snprintf(infoBuffer, infoBufferLen, "WASD: move laterally");
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
 	snprintf(infoBuffer, infoBufferLen, "Q/E: move up/down");
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	snprintf(infoBuffer, infoBufferLen, "left/right arrow keys: turn");
+	snprintf(infoBuffer, infoBufferLen, "left/right: turn");
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
 	snprintf(infoBuffer, infoBufferLen, "Z/X: increase/decrease FOV");
 	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	line = Video::ScreenHeight - 1;
+	snprintf(infoBuffer, infoBufferLen, "screen dimensions: %ux%u", Video::GetScreenWidth(), Video::GetScreenHeight());
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", gobj.transform[3][0], gobj.transform[3][1], gobj.transform[3][2], gobj.transform[3][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", gobj.transform[2][0], gobj.transform[2][1], gobj.transform[2][2], gobj.transform[2][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", gobj.transform[1][0], gobj.transform[1][1], gobj.transform[1][2], gobj.transform[1][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", gobj.transform[0][0], gobj.transform[0][1], gobj.transform[0][2], gobj.transform[0][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "model matrix:");
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
+	snprintf(infoBuffer, infoBufferLen, "aspect ratio: %.3f", Video::GetAspectRatio());
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.V[3][0], cam.V[3][1], cam.V[3][2], cam.V[3][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.V[2][0], cam.V[2][1], cam.V[2][2], cam.V[2][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.V[1][0], cam.V[1][1], cam.V[1][2], cam.V[1][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.V[0][0], cam.V[0][1], cam.V[0][2], cam.V[0][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "view matrix:");
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
+	snprintf(infoBuffer, infoBufferLen, "cam fov: %.3f", cam.fov);
+	mvaddnstr(line++, 0, infoBuffer, infoBufferLen);
 
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.P[3][0], cam.P[3][1], cam.P[3][2], cam.P[3][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.P[2][0], cam.P[2][1], cam.P[2][2], cam.P[2][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.P[1][0], cam.P[1][1], cam.P[1][2], cam.P[1][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "[ %f %f %f %f ]", cam.P[0][0], cam.P[0][1], cam.P[0][2], cam.P[0][3]);
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
-	snprintf(infoBuffer, infoBufferLen, "projection matrix:");
-	mvaddnstr(line--, 0, infoBuffer, infoBufferLen);
+	ShowMatrix("camera transform:", infoBuffer, infoBufferLen, line, cam.transform);
+	ShowMatrix("camera view:", infoBuffer, infoBufferLen, line, cam.view);
+	ShowMatrix("camera projection:", infoBuffer, infoBufferLen, line, cam.projection);
+	ShowMatrix("obj transform:", infoBuffer, infoBufferLen, line, gobj.transform);
 }
 
-void UseInput(Camera& cam, Vector3& forward, Vector3& right) {
+void UseInput(Camera& cam) {
 	switch(lastInput) {
 		case ERR: break;
-		case 'w': cam.position = cam.position + forward; break;
-		case 'a': cam.position = cam.position - right; break;
-		case 's': cam.position = cam.position - forward; break;
-		case 'd': cam.position = cam.position + right; break;
-		case 'q': cam.position[1] -= 0.5f; break;
-		case 'e': cam.position[1] += 0.5f; break;
-		case 'z': cam.fov += 10*DEGTORAD; break;
-		case 'x': cam.fov -= 10*DEGTORAD; break;
-		case KEY_LEFT: cam.yaw += 10*DEGTORAD; break;
-		case KEY_RIGHT: cam.yaw -= 10*DEGTORAD; break;
+		case 'w': cam.transform[3] += cam.transform[2]; break;
+		case 'a': cam.transform[3] += cam.transform[0]; break;
+		case 's': cam.transform[3] -= cam.transform[2]; break;
+		case 'd': cam.transform[3] -= cam.transform[0]; break;
+		case 'q': cam.transform[3].y -= 0.5f; break;
+		case 'e': cam.transform[3].y += 0.5f; break;
+		case 'z': cam.fov -= 5.0f; break;
+		case 'x': cam.fov += 5.0f; break;
+		case KEY_LEFT:
+			cam.transform = glm::rotate(cam.transform, -glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			break;
+		case KEY_RIGHT:
+			cam.transform = glm::rotate(cam.transform, glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			break;
 	}
 }
 
@@ -103,43 +85,66 @@ int main(void) {
 
 	Video::Init();
 
-	Camera cam({0,0,-5}, 0, 60*DEGTORAD, 1, 0.1, 10);
-	Vector3 forward;
-	Vector3 right;
-	cam.aspect = (float) Video::ScreenWidth / (float) Video::ScreenHeight / 2;
-
-	Model mod(
+	Camera cam(glm::vec3(0.0f, 0.0f, 5.0f), 60.0f, 0.1f, 10.0f);
+	
+	Model cube(
 		{{1,1,1},{1,1,-1},{1,-1,1},{1,-1,-1},{-1,1,1},{-1,1,-1},{-1,-1,1},{-1,-1,-1}},
-		{{0,6,4},{0,2,6},{0,3,2},{0,1,3},{2,7,6},{2,3,7},{4,6,7},{4,7,5},{0,4,5},{0,5,1},{1,5,7},{1,7,3}}
+		{0,1, 1,3, 3,2, 2,0, 4,5, 5,7, 7,6, 6,4, 0,4, 1,5, 2,6, 3,7},
+		Model::Primitive::Lines
 	);
 
-	// Model mod(
-	// 	{{0,0,0},{1,0,0},{0,1,0},{0,0,1}},
-	// 	{}
-	// );
-	
+	float sqrt2 = sqrt(2);
+	Model tetrahedron(
+		{{1,0,1},{1,0,-1},{-1,0,-1},{-1,0,1},{0,sqrt2,0},{0,-sqrt2,0}},
+		{0,1, 1,2, 2,3, 3,0, 0,4, 1,4, 2,4, 3,4, 0,5, 1,5, 2,5, 3,5},
+		Model::Primitive::Lines
+	);
 
-	GameObject gobj(Matrix4::Identity(), mod);
-	float animYaw = 0;
+	GameObject gobj1(glm::vec3(-3.0f, 0.0f, 0.0f), cube);
+	GameObject gobj2(glm::vec3(3.0f, 0.0f, 0.0f), tetrahedron);
+	float anim = 0;
 
 	while(true) {
+
 		Video::Clear();
 
-		// animYaw += 1*DEGTORAD;
-		gobj.transform = Matrix4::Translation({0, cos(15*animYaw), 0}) * Matrix4::RotationY(7*animYaw);
+		Video::PlotLine(30.0f, 0.0f, 30.0f, 32.0f, 0);
 
-		UpdateInfoBlob(cam, gobj);
-		cam.Render(gobj);
+		anim += glm::radians(1.0f);
 
+		gobj1.transform = glm::translate(
+			glm::rotate(
+				glm::mat4(1.0f),
+				3*anim,
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			),
+			glm::vec3(
+				3.0f,
+				sin(5*anim),
+				0.0f
+			)
+		);
+
+		gobj2.transform = glm::translate(
+			glm::rotate(
+				glm::mat4(1.0f),
+				4.5f*anim,
+				glm::vec3(1.0f)
+			),
+			glm::vec3(
+				3.0f,
+				sin(0.2*anim),
+				0.0f
+			)
+		);
+
+		UpdateInfoBlob(cam, gobj1);
+		cam.Render(gobj1);
+		cam.Render(gobj2);
 		Video::Refresh();
 
-		forward[0] = sin(cam.yaw) * 0.5f;
-		forward[2] = cos(cam.yaw) * 0.5f;
-		right[0] = -forward[2];
-		right[2] = forward[0];
-
 		lastInput = getch();
-		UseInput(cam, forward, right);
+		UseInput(cam);
 	}
 
 	Video::Deinit();

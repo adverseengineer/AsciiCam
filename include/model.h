@@ -8,53 +8,41 @@
 #include <string>
 #include <vector>
 
-#include "vector.h"
+#include <glm/vec3.hpp>
+
+#include "util.h"
 
 struct Model {
 
-	struct Face {
-		size_t vertexIndices[3];
-
-		Face(const std::initializer_list<size_t>& indices) {
-			assert(indices.size() == 3);
-			size_t i = 0;
-			for(const size_t& elem : indices)
-				vertexIndices[i++] = elem;
-		}
-
-		//appends a face's text representation to an output stream
-		inline friend std::ostream& operator<<(std::ostream& stream, const Face& face) {
-			stream << '[';
-			for (size_t i = 0; i < 3; i++) {
-				stream << face.vertexIndices[i];
-				if(i < 2)
-					stream << ", ";
-			}
-			stream << ']';
-			return stream;
-		}
+	enum class Primitive : unsigned char {
+		Points = 0,
+		Lines = 1,
+		Triangles = 2,
+		//Quads = 3 //TODO: add support for quads, but it will necessitate extra checks to make sure verts are coplanar
 	};
 
-	std::vector<Vector3> verts;
-	std::vector<Face> faces;
+	std::vector<glm::vec3> verts;
+	std::vector<unsigned short> indices;
+	Primitive renderingPrimitive;
 
-	Model(const std::vector<Vector3>& verts, const std::vector<Face>& faces):
-		verts(verts), faces(faces) {
+	inline Model(const std::vector<glm::vec3>& verts, const std::vector<unsigned short>& indices, Primitive renderingPrimitive):
+	verts(verts), indices(indices), renderingPrimitive(renderingPrimitive) {
 	}
 
-	//appends a face text representation to an output stream
+	//appends a text representation of a models verts and indices to an output stream
 	inline friend std::ostream& operator<<(std::ostream& stream, const Model& model) {
+		
 		stream << "verts: {";
 		size_t n = model.verts.size();
 		for (size_t i = 0; i < n; i++) {
-			stream << model.verts[i];
+			Util::appendToStream<3>(stream, model.verts[i]);
 			if(i < n - 1)
 				stream << ", ";
 		}
-		stream << "}\nfaces: {";
-		n = model.faces.size();
+		stream << "}\nindices: {";
+		n = model.indices.size();
 		for (size_t i = 0; i < n; i++) {
-			stream << model.faces[i];
+			stream << model.indices[i];
 			if(i < n - 1)
 				stream << ", ";
 		}

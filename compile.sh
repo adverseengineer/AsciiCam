@@ -1,1 +1,1 @@
-g++ -std=c++23 -Wall -Wpedantic source/main.cpp -Iinclude -lncurses
+g++ -std=c++23 -Wall -Wpedantic source/video.cpp source/main.cpp -Iinclude -I3rdparty -lncurses

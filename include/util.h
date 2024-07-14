@@ -5,24 +5,33 @@
 #include <cmath>
 #include <limits>
 
+#include <glm/matrix.hpp>
+#include <ostream>
+#include <iomanip>
+
 namespace Util {
-	template <typename T>
-	static inline bool ApproxEqual(T a, T b, T epsilon = std::numeric_limits<T>::epsilon()) noexcept {
 
-		T diff = std::abs(a - b);
+	static const int precision = 15;
+	static const int chars = 19;
 
-		//if the operands are truly equal
-		if(a == b)
-			return true;
-		//if the elements are 
-		else if(a == 0 || b == 0 || diff < std::numeric_limits<T>::min())
-			// Handle values near zero and subnormal numbers
-			return diff < (epsilon * std::numeric_limits<T>::min());
-		else {
-			T absA = std::abs(a);
-			T absB = std::abs(b);
-			return diff / std::min(absA + absB, std::numeric_limits<T>::max()) < epsilon;
+	//converts a matrix into a stream representation
+	template <size_t C, size_t R, typename T = float>
+	static inline void appendToStream(std::ostream& stream, const glm::mat<C,R,T>& mat) {
+		for(size_t row = 0; row < R; row++) {
+			stream << "[ ";
+			for(size_t col = 0; col < C; col++)
+				stream << std::fixed << std::setprecision(precision) << std::setw(chars) << mat[row][col] << " ";
+			stream << "]\n";
 		}
+	}
+	
+	//converts a vector into a stream representation
+	template <size_t L, typename T = float>
+	static inline void appendToStream(std::ostream& stream, const glm::vec<L,T> vec) {
+		stream << "( ";
+		for(size_t i = 0; i < L; i++)
+			stream << std::fixed << std::setprecision(precision) << std::setw(chars) << vec[i] << " ";
+		stream << ")\n";
 	}
 }
 #endif

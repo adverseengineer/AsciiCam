@@ -6,6 +6,8 @@
 #include "camera.h"
 #include "gameobject.h"
 
+//TODO: BVH!!!!
+
 class Level {
 
 public:

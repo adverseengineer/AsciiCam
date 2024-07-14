@@ -5,7 +5,7 @@
 
 namespace Math {
 	#include "matrix.h"
-	#include "vec.h"
+	#include "vector.h"
 }
 
 #endif
